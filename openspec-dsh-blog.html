@@ -1,0 +1,629 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN" data-theme="auto">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenSpec 入门与实践:让 AI 编程从「许愿」变成「按规格交付」 · OpenSpec × DSH</title>
+<meta name="description" content="OpenSpec 使用与介绍,以及如何在 DeepSeek Harness(DSH)中落地 spec-driven development 的完整实践指南。">
+<style>
+  :root {
+    --sidebar-w: 300px;
+    --radius: 12px;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", "Cascadia Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
+    --accent: #14807a;
+    --accent-2: #1d6fd0;
+  }
+  html[data-theme="light"] {
+    --bg: #f4f5f2;
+    --bg-soft: #ffffff;
+    --bg-code: #10201f;
+    --fg: #18211f;
+    --fg-soft: #5a6a67;
+    --line: #dfe3dd;
+    --line-soft: #eaede8;
+    --quote: #eef3f1;
+    --shadow: 0 1px 2px rgba(20, 40, 35, .06), 0 12px 40px rgba(20, 40, 35, .07);
+    --accent: #0f766e;
+    --accent-2: #1d6fd0;
+    --mark: #fff3c4;
+  }
+  html[data-theme="dark"] {
+    --bg: #0e1413;
+    --bg-soft: #151d1c;
+    --bg-code: #0a100f;
+    --fg: #e6ece9;
+    --fg-soft: #9aa8a4;
+    --line: #26302e;
+    --line-soft: #1d2624;
+    --quote: #17211f;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .5), 0 18px 50px rgba(0, 0, 0, .45);
+    --accent: #3fd0c0;
+    --accent-2: #6cb2ff;
+    --mark: #4a3c10;
+  }
+  @media (prefers-color-scheme: dark) {
+    html[data-theme="auto"] {
+      --bg: #0e1413; --bg-soft: #151d1c; --bg-code: #0a100f; --fg: #e6ece9; --fg-soft: #9aa8a4;
+      --line: #26302e; --line-soft: #1d2624; --quote: #17211f;
+      --shadow: 0 1px 2px rgba(0,0,0,.5), 0 18px 50px rgba(0,0,0,.45);
+      --accent: #3fd0c0; --accent-2: #6cb2ff; --mark: #4a3c10;
+    }
+  }
+  @media (prefers-color-scheme: light) {
+    html[data-theme="auto"] {
+      --bg: #f4f5f2; --bg-soft: #fff; --bg-code: #10201f; --fg: #18211f; --fg-soft: #5a6a67;
+      --line: #dfe3dd; --line-soft: #eaede8; --quote: #eef3f1;
+      --shadow: 0 1px 2px rgba(20,40,35,.06), 0 12px 40px rgba(20,40,35,.07);
+      --accent: #0f766e; --accent-2: #1d6fd0; --mark: #fff3c4;
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+  body {
+    margin: 0; background: var(--bg); color: var(--fg);
+    font-family: var(--sans); font-size: 16.5px; line-height: 1.85;
+    -webkit-font-smoothing: antialiased;
+  }
+  #progress {
+    position: fixed; inset: 0 auto auto 0; height: 3px; width: 0;
+    background: linear-gradient(90deg, var(--accent), var(--accent-2)); z-index: 60;
+  }
+
+  /* ---------- 侧栏 ---------- */
+  aside {
+    position: fixed; inset: 0 auto 0 0; width: var(--sidebar-w);
+    background: var(--bg-soft); border-right: 1px solid var(--line);
+    padding: 26px 0 40px; overflow-y: auto; z-index: 40;
+  }
+  aside .brand { padding: 0 24px 18px; border-bottom: 1px solid var(--line-soft); }
+  aside .brand b { display:block; font-size: 17px; letter-spacing: .2px; }
+  aside .brand span { color: var(--fg-soft); font-size: 12.5px; letter-spacing: .3px; text-transform: uppercase; }
+  aside .meta { padding: 14px 24px; color: var(--fg-soft); font-size: 13px; }
+  aside .meta code { background: var(--quote); padding: 1px 6px; border-radius: 6px; }
+  nav { padding: 8px 12px 0; }
+  nav ol { list-style: none; margin: 0; padding: 0; }
+  nav > ol > li { margin: 2px 0; }
+  nav a {
+    display: flex; gap: 8px; align-items: baseline; text-decoration: none;
+    color: var(--fg-soft); font-size: 14px; padding: 7px 12px; border-radius: 9px;
+    border-left: 2px solid transparent; transition: .15s;
+  }
+  nav a:hover { color: var(--fg); background: var(--quote); }
+  nav a.active { color: var(--accent); background: var(--quote); border-left-color: var(--accent); font-weight: 600; }
+  nav .num { font-family: var(--mono); font-size: 11.5px; opacity: .7; }
+  nav ul { list-style: none; margin: 2px 0 8px; padding: 0 0 0 26px; }
+  nav ul a { font-size: 13px; padding: 4px 10px; color: var(--fg-soft); opacity: .85; }
+
+  /* ---------- 正文 ---------- */
+  main { margin-left: var(--sidebar-w); padding: 56px 40px 120px; }
+  article { max-width: 860px; margin: 0 auto; }
+  article > h1 {
+    font-size: 2.15rem; line-height: 1.3; margin: 0 0 18px; letter-spacing: -.4px;
+  }
+  h2 {
+    font-size: 1.5rem; margin: 3.4em 0 .9em; padding-top: 1.1em;
+    border-top: 1px solid var(--line-soft); letter-spacing: -.2px; scroll-margin-top: 80px;
+  }
+  h2::before {
+    content: attr(data-num);
+    font-family: var(--mono); font-size: .8rem; color: var(--accent);
+    display: block; margin-bottom: .35em; letter-spacing: 2px;
+  }
+  h3 { font-size: 1.14rem; margin: 2.2em 0 .6em; scroll-margin-top: 80px; }
+  h4 { font-size: 1rem; margin: 1.6em 0 .4em; }
+  p { margin: .95em 0; }
+  a { color: var(--accent-2); text-decoration-thickness: 1px; text-underline-offset: 3px; }
+  a:hover { color: var(--accent); }
+  strong { font-weight: 650; }
+  hr { border: 0; border-top: 1px solid var(--line-soft); margin: 2.6em 0; }
+  ul, ol { padding-left: 1.35em; }
+  li { margin: .34em 0; }
+  li.task { list-style: none; margin-left: -1.35em; display: flex; gap: .6em; align-items: flex-start; }
+  li.task .box {
+    flex: 0 0 18px; height: 18px; margin-top: .34em; border: 1.5px solid var(--line);
+    border-radius: 5px; font-size: 12px; line-height: 15px; text-align: center; color: var(--accent);
+  }
+  li.task.done .box { border-color: var(--accent); }
+  code {
+    font-family: var(--mono); font-size: .875em; background: var(--quote);
+    padding: .15em .42em; border-radius: 6px; word-break: break-word;
+  }
+  blockquote {
+    margin: 1.4em 0; padding: 1px 20px; background: var(--quote);
+    border-left: 3px solid var(--accent); border-radius: 0 var(--radius) var(--radius) 0; color: var(--fg-soft);
+  }
+  blockquote p { margin: .8em 0; }
+
+  /* ---------- 代码块 ---------- */
+  figure.code {
+    margin: 1.5em 0; background: var(--bg-code); border-radius: var(--radius);
+    overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--line);
+  }
+  figure.code figcaption {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 8px 12px 8px 16px; background: rgba(255,255,255,.04);
+    border-bottom: 1px solid rgba(255,255,255,.07);
+  }
+  figure.code .lang {
+    font-family: var(--mono); font-size: 11.5px; letter-spacing: 1.4px; text-transform: uppercase;
+    color: #6fd7c8;
+  }
+  figure.code .copy {
+    cursor: pointer; font: inherit; font-size: 12px; padding: 3px 10px; border-radius: 7px;
+    color: #b9c7c3; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+  }
+  figure.code .copy:hover { color: #fff; border-color: #6fd7c8; }
+  figure.code .copy.ok { color: #0e1413; background: #6fd7c8; border-color: #6fd7c8; }
+  figure.code pre { margin: 0; padding: 16px 18px 18px; overflow-x: auto; }
+  figure.code code {
+    background: none; padding: 0; border-radius: 0; color: #dfe9e6;
+    font-size: 13.4px; line-height: 1.72; white-space: pre;
+  }
+
+  /* ---------- 表格 ---------- */
+  .table-wrap { margin: 1.5em 0; overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+  table { border-collapse: collapse; width: 100%; font-size: 14.6px; background: var(--bg-soft); }
+  th, td { padding: 10px 14px; text-align: left; vertical-align: top; border-bottom: 1px solid var(--line-soft); }
+  th { background: var(--quote); font-weight: 650; white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: var(--quote); }
+  td code { white-space: nowrap; }
+
+  footer {
+    margin-left: var(--sidebar-w); padding: 26px 40px 60px; color: var(--fg-soft); font-size: 13.5px;
+    border-top: 1px solid var(--line-soft); text-align: center;
+  }
+
+  /* 移动端 */
+  .topbar { display: none; }
+  @media (max-width: 980px) {
+    aside {
+      position: fixed; inset: 0 0 0 0; width: 84vw; max-width: 330px;
+      transform: translateX(-102%); transition: transform .22s ease; box-shadow: var(--shadow);
+    }
+    body.nav-open aside { transform: none; }
+    body.nav-open::after {
+      content: ""; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 35;
+    }
+    .topbar {
+      display: flex; align-items: center; gap: 12px; position: sticky; top: 0; z-index: 30;
+      background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--line); padding: 10px 16px;
+    }
+    .topbar button {
+      font: inherit; font-size: 13px; color: var(--fg); background: var(--quote);
+      border: 1px solid var(--line); border-radius: 9px; padding: 6px 12px; cursor: pointer;
+    }
+    .topbar .t { font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    main, footer { margin-left: 0; }
+    main { padding: 26px 20px 80px; }
+    footer { padding: 22px 20px 50px; }
+    article > h1 { font-size: 1.6rem; }
+    h2 { font-size: 1.28rem; }
+    body { font-size: 16px; }
+  }
+  @media print {
+    aside, .topbar, #progress, figure.code .copy { display: none !important; }
+    main, footer { margin: 0; padding: 0; }
+    body { background: #fff; color: #000; font-size: 11.5pt; }
+    figure.code { box-shadow: none; break-inside: avoid; }
+    h2 { break-after: avoid; }
+  }
+</style>
+</head>
+<body>
+<div id="progress"></div>
+
+<header class="topbar">
+  <button type="button" id="navToggle" aria-label="打开目录">目录</button>
+  <span class="t">OpenSpec × DSH</span>
+</header>
+
+<aside id="sidebar">
+  <div class="brand">
+    <b>OpenSpec × DSH</b>
+    <span>spec-driven development</span>
+  </div>
+  <div class="meta">
+    基于 <code>OpenSpec 1.14.0</code> 实测 · DeepSeek Harness
+  </div>
+  <nav aria-label="目录">
+    <ol>
+<li><a href="#先说痛点-为什么-ai-写代码需要-规格"><span class="num">01</span>先说痛点:为什么 AI 写代码需要「规格」</a></li>
+<li><a href="#openspec-是什么"><span class="num">02</span>OpenSpec 是什么</a><ul><li><a href="#2-1-核心概念">2.1 核心概念</a></li><li><a href="#2-2-一次变更-bundle-长什么样">2.2 一次变更(Bundle)长什么样</a></li></ul></li>
+<li><a href="#安装与初始化"><span class="num">03</span>安装与初始化</a><ul><li><a href="#3-1-安装-cli">3.1 安装 CLI</a></li><li><a href="#3-2-在项目里初始化-关键是选对-tools">3.2 在项目里初始化 —— 关键是选对 --tools</a></li><li><a href="#3-3-dsh-用户会被写入什么">3.3 DSH 用户会被写入什么</a></li><li><a href="#3-4-dsh-到底从哪里发现这些技能">3.4 DSH 到底从哪里发现这些技能</a></li></ul></li>
+<li><a href="#完整实战-从一句需求到归档"><span class="num">04</span>完整实战:从一句需求到归档</a><ul><li><a href="#第-0-步-可选-先想清楚-explore">第 0 步(可选):先想清楚 —— explore</a></li><li><a href="#第-1-步-创建变更骨架">第 1 步:创建变更骨架</a></li><li><a href="#第-2-步-看进度-status">第 2 步:看进度 —— status</a></li><li><a href="#第-3-步-让-ai-按指令写产物">第 3 步:让 AI 按指令写产物</a></li><li><a href="#第-4-步-校验-validate">第 4 步:校验 —— validate</a></li><li><a href="#第-5-步-实现-apply">第 5 步:实现 —— apply</a></li><li><a href="#第-6-步-归档-archive">第 6 步:归档 —— archive</a></li></ul></li>
+<li><a href="#在-dsh-里用好-openspec"><span class="num">05</span>在 DSH 里用好 OpenSpec</a><ul><li><a href="#5-1-三种使用姿势">5.1 三种使用姿势</a></li><li><a href="#5-2-dsh-侧的入口细节">5.2 DSH 侧的入口细节</a></li><li><a href="#5-3-让-dsh-不跑偏的三个抓手">5.3 让 DSH 不跑偏的三个抓手</a></li><li><a href="#5-4-每条技能在干什么-速查">5.4 每条技能在干什么(速查)</a></li></ul></li>
+<li><a href="#团队与多仓库-stores-beta"><span class="num">06</span>团队与多仓库:Stores(beta)</a></li>
+<li><a href="#常见坑与排查"><span class="num">07</span>常见坑与排查</a></li>
+<li><a href="#最佳实践清单"><span class="num">08</span>最佳实践清单</a></li>
+<li><a href="#结语-规格不是负担-是给-ai-的接口"><span class="num">09</span>结语:规格不是负担,是给 AI 的接口</a></li>
+<li><a href="#参考"><span class="num">10</span>参考</a></li>
+    </ol>
+  </nav>
+</aside>
+
+<main>
+  <article>
+<h1 id="openspec-入门与实践-让-ai-编程从-许愿-变成-按规格交付">OpenSpec 入门与实践:让 AI 编程从「许愿」变成「按规格交付」</h1>
+<blockquote><p>副标题:一份面向 DeepSeek Harness(DSH)用户的 spec-driven development 指南</p><p>环境:OpenSpec 1.14.0 + DeepSeek Harness + Windows / Node.js 20.19+<br>文中所有命令输出均在真实终端中执行并核对过。</p></blockquote>
+<hr>
+<h2 id="先说痛点-为什么-ai-写代码需要-规格" data-num="01">先说痛点:为什么 AI 写代码需要「规格」</h2>
+<p>用 AI 写代码最让人抓狂的不是它写得慢,而是它<strong>每次写得都不一样</strong>。</p>
+<p>同一个需求,早上让它加个「深色模式」,它给你加了 CSS 变量;下午让它再加一次,它给你装了 UI 库主题插件。三次对话下来,代码库里躺着三套互不相容的主题方案。问题不在于模型不够聪明,而在于<strong>需求只存在于聊天记录里</strong>:</p>
+<ul><li>聊天记录会滚动、会被清空、会超上下文窗口;</li><li>新来的同事、新开的会话、换一个 AI 工具,都读不到昨天的决策;</li><li>「我以为你懂我的意思」——人类和 AI 对同一个词的理解并不一致;</li><li>代码评审时你只能看 diff,看不到「当初为什么这么改」。</li></ul>
+<p>OpenSpec 的解法朴素但有效:<strong>在写代码之前,先让人类和 AI 就一份 Markdown 规格达成一致,并且这份规格和代码一起放进 Git。</strong></p>
+<blockquote><p>OpenSpec 官方定位:AI-native system for spec-driven development(spec 驱动的 AI 原生开发系统)。<br>哲学是「fluid not rigid, iterative not waterfall」——有规格,但不搞瀑布式阶段门禁。</p></blockquote>
+<hr>
+<h2 id="openspec-是什么" data-num="02">OpenSpec 是什么</h2>
+<p>一句话:<strong>它是一套文件夹约定 + 一个 CLI + 一组给 AI 用的技能/命令。</strong></p>
+<p>它不接管你的构建、不生成代码框架、不绑定任何模型或编辑器。它只做三件事:</p>
+<ol><li><strong>规定目录结构</strong>——规格放哪、变更提案放哪;</li><li><strong>提供 CLI 校验</strong>——规格和提案格式是否合法、任务是否完成、变更能否归档;</li><li><strong>给 AI 发指令</strong>——<code>openspec instructions</code> 把「该写什么、写到哪、遵守什么规则」以结构化 JSON/Markdown 交给 AI,AI 不再靠猜。</li></ol>
+<h3 id="2-1-核心概念">2.1 核心概念</h3>
+<div class="table-wrap"><table><thead><tr><th>概念</th><th>目录</th><th>说明</th></tr></thead><tbody><tr><td><strong>Spec(规格)</strong></td><td><code>openspec/specs/<capability>/spec.md</code></td><td>系统<strong>当前</strong>已承诺的能力,长期存在,是唯一事实来源</td></tr><tr><td><strong>Change(变更)</strong></td><td><code>openspec/changes/<change-name>/</code></td><td>一次改动的完整方案,包含提案、规格增量、设计、任务</td></tr><tr><td><strong>Delta(增量规格)</strong></td><td><code>changes/<name>/specs/<capability>/spec.md</code></td><td>只描述「本次新增/修改/删除哪些需求」,归档时才合并进正式规格</td></tr><tr><td><strong>Archive(归档)</strong></td><td><code>changes/archive/YYYY-MM-DD-<name>/</code></td><td>完成后的变更归档,同时把增量合并进 specs</td></tr><tr><td><strong>Store(独立仓库,beta)</strong></td><td>由 <code>openspec store</code> 管理</td><td>跨仓库共享规格:多个代码仓库共用一个 OpenSpec 仓库</td></tr><tr><td><strong>Schema(工作流模板)</strong></td><td><code>openspec/config.yaml</code> 中 <code>schema:</code></td><td>默认 <code>spec-driven</code>:proposal → specs → design → tasks</td></tr></tbody></table></div>
+<p>关键设计是 <strong>Delta 机制</strong>:并发开发三个功能时,每个功能改的是自己 <code>changes/</code> 目录下的增量文件,不会互相覆盖;只有归档那一刻,增量才被应用进 <code>specs/</code>。</p>
+<h3 id="2-2-一次变更-bundle-长什么样">2.2 一次变更(Bundle)长什么样</h3>
+<p>以本文的示例 <code>add-theme-toggle</code> 为例,创建后是这样:</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">openspec/
+├── config.yaml                      # 项目约束、每个 artifact 的规则、apply/archive 指引
+├── specs/                           # 当前系统能力(唯一事实来源)
+│   └── theme-system/spec.md         # 归档时由增量合并生成
+└── changes/
+    ├── archive/
+    │   └── 2026-10-03-add-theme-toggle/
+    └── add-theme-toggle/
+        ├── .openspec.yaml           # schema: spec-driven;可加 skip_specs: true
+        ├── proposal.md              # 为什么做、改什么、影响什么
+        ├── specs/theme-system/spec.md  # 增量:## ADDED Requirements + 场景
+        ├── design.md                # 技术方案、权衡、风险、迁移
+        └── tasks.md                 # 可勾选的实现清单(带验证方式)</code></pre></figure>
+<p>四份产物各司其职:</p>
+<ul><li><strong>proposal.md</strong>:<code>Why</code> / <code>What Changes</code> / <code>Capabilities</code> / <code>Impact</code>。只讲「为什么」和「改什么」,不讲实现。</li><li><strong>specs/&lt;capability&gt;/spec.md</strong>:验收标准。每条 <code>### Requirement:</code> 用「SHALL + 可观察行为」描述,并至少挂一个 <code>#### Scenario:</code>(WHEN/THEN)。</li><li><strong>design.md</strong>:实现路径、备选方案、风险。<strong>条件产物</strong>,简单改动可以跳过。</li><li><strong>tasks.md</strong>:可执行清单。<strong>注意任务要写「验证方式」</strong>,这是让 AI 自证完成的关键。</li></ul>
+<p>一份真实可用的增量规格(节选自本示例):</p>
+<figure class="code"><figcaption><span class="lang">markdown</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-markdown">## ADDED Requirements
+
+### Requirement: Theme selection
+
+系统 SHALL 允许用户在 `light`、`dark`、`system` 三种主题偏好之间切换,
+默认值为 `system`,并 SHALL 在用户未显式选择时跟随操作系统的外观设置。
+
+#### Scenario: 用户手动切换到深色主题
+
+- **WHEN** 用户在设置页选择 `dark`
+- **THEN** 界面立即切换为深色,且偏好写入 `localStorage` 的 `theme` 键
+
+#### Scenario: 跟随系统偏好
+
+- **WHEN** 偏好为 `system` 且操作系统切换为深色
+- **THEN** 界面自动切换为深色,无需刷新页面</code></pre></figure>
+<p>没有任何私有语法:就是 Markdown、四级标题和 WHEN/THEN 列表。人读得懂,<code>openspec validate</code> 也解析得了。</p>
+<hr>
+<h2 id="安装与初始化" data-num="03">安装与初始化</h2>
+<h3 id="3-1-安装-cli">3.1 安装 CLI</h3>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash"># 要求 Node.js &gt;= 20.19.0
+npm install -g @fission-ai/openspec@latest
+
+# macOS / Linux 也可以用 Homebrew
+brew install openspec
+
+openspec version
+# OpenSpec 1.14.0 (npm, global)</code></pre></figure>
+<h3 id="3-2-在项目里初始化-关键是选对-tools">3.2 在项目里初始化 —— 关键是选对 <code>--tools</code></h3>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">cd your-project
+openspec init</code></pre></figure>
+<p>交互式会问你用哪些 AI 工具。<strong>用 DSH 的话选 <code>DeepSeek Harness</code></strong>,或者非交互式直接:</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec init --tools dsh</code></pre></figure>
+<p>真实输出(节选,<code>dsh</code> 的关键信息都在这里):</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">√ Setup complete for DeepSeek Harness
+
+OpenSpec Setup Complete
+
+Created: DeepSeek Harness
+6 skills in .dsh/
+Commands skipped for: dsh (no adapter)
+Config: openspec/config.yaml (schema: spec-driven)
+
+Getting started:
+  Start your first change: /openspec-propose &quot;your idea&quot;</code></pre></figure>
+<p>其他常用参数:</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec init --tools dsh --language Chinese   # 新产物默认用中文书写
+openspec update                                # 升级后刷新已生成的技能/命令文件
+openspec config profile                        # 切换工作流配置档(core / 扩展档)</code></pre></figure>
+<h3 id="3-3-dsh-用户会被写入什么">3.3 DSH 用户会被写入什么</h3>
+<p><code>openspec init --tools dsh</code> 在项目里创建 <code>.dsh/skills/</code>,默认写入 <strong>6 个技能</strong>:</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">.dsh/skills/
+├── openspec-propose/SKILL.md          # 提出变更并一次性生成全部规划产物
+├── openspec-explore/SKILL.md          # 动手前的思考搭子
+├── openspec-apply-change/SKILL.md     # 按 tasks 实现
+├── openspec-update-change/SKILL.md    # 修改已存在的变更方案并保持产物一致
+├── openspec-sync-specs/SKILL.md       # 把增量规格同步进主规格(不归档)
+└── openspec-archive-change/SKILL.md   # 归档并合并规格</code></pre></figure>
+<p>每个 <code>SKILL.md</code> 都是标准 SKILL 格式,DSH 能直接发现并加载:</p>
+<figure class="code"><figcaption><span class="lang">markdown</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-markdown">---
+name: openspec-propose
+description: Propose a new OpenSpec change with all artifacts generated in one step.
+  ...Also use when the user says &quot;openspec propose&quot; or &quot;opsx propose&quot;.
+allowed-tools: Bash(openspec:*)
+compatibility: Requires openspec CLI.
+metadata:
+  author: openspec
+  generatedBy: &quot;1.14.0&quot;
+---</code></pre></figure>
+<p>注意输出里的 <strong><code>Commands skipped for: dsh (no adapter)</code></strong>:OpenSpec 官方目前只给 DSH 发<strong>技能(skill)</strong>,不发命令文件(命令)。所以有两种可能的用法:</p>
+<ul><li><strong>技能通道(官方,开箱即用)</strong>:你用自然语言或 <code>/技能名</code> 触发,DSH 自动加载对应技能——因为技能的 <code>description</code> 里显式写了触发短语(<code>openspec propose</code>、<code>opsx propose</code>、<code>openspec apply</code>、<code>opsx archive</code> 等)。你也可以直接点名,例如「用 openspec-propose 这条技能来做」。</li><li><strong>命令通道(第三方插件)</strong>:社区的 <code>@codigoconelmer/dsh-openspec</code> 把同一批官方工作流注册成 DSH 的原生斜杠命令 <code>/opsx-explore</code>、<code>/opsx-propose</code>、<code>/opsx-apply</code>、<code>/opsx-sync</code>、<code>/opsx-archive</code>、<code>/opsx-update</code>。详见 <a href="#5-2-dsh-侧的入口细节">5.2 DSH 侧的入口细节</a>。</li></ul>
+<p>而在 Cursor / GitHub Copilot 这类工具里,OpenSpec 直接写命令文件,你敲的是 <code>/opsx:propose</code>。</p>
+<blockquote><p>升级 OpenSpec 后,记得在<strong>每个项目</strong>里跑一次 <code>openspec update</code>,重新生成 <code>.dsh/skills/</code>,否则技能内容和 CLI 版本会漂移。</p></blockquote>
+<h3 id="3-4-dsh-到底从哪里发现这些技能">3.4 DSH 到底从哪里发现这些技能</h3>
+<p>这一节来自 DSH 自带的技能插件文档(<code>dsh-skill-filesystem</code>,可在应用包 <code>resources\app.asar</code> 内检索到)。DSH 的技能发现是<strong>多根目录 + 优先级</strong>的:</p>
+<div class="table-wrap"><table><thead><tr><th>优先级</th><th>来源</th><th>路径</th></tr></thead><tbody><tr><td>100</td><td><code>project-dsh</code></td><td><code><projectRoot>/.dsh/skills</code></td></tr><tr><td>200</td><td><code>project-agents</code></td><td><code><projectRoot>/.agents/skills</code></td></tr><tr><td>300</td><td><code>custom</code></td><td>配置项 <code>customSkillDirs</code></td></tr><tr><td>400</td><td><code>user-dsh</code></td><td><code>~/.dsh/skills</code></td></tr><tr><td>500</td><td><code>user-agents</code></td><td><code>~/.agents/skills</code></td></tr><tr><td>600</td><td><code>bundled</code></td><td>内置技能目录</td></tr></tbody></table></div>
+<ul><li><strong><code>projectRoot</code> 是最近的、含 <code>.git</code> 的祖先目录</strong>;没有 <code>.git</code> 时退化为当前工作目录。这条规则对 OpenSpec 用户很关键:<code>openspec init</code> 写在项目根的 <code>.dsh/skills/</code>,而 DSH 会话只要在这个仓库内,就一定能发现它。</li><li>一个技能要么是目录包 <code><name>/SKILL.md</code>,要么是根目录下的平铺文件 <code><name>.md</code>;<strong>嵌套的 <code>**/SKILL.md</code> 刻意不被发现</strong>——所以别把 OpenSpec 技能挪到子目录里。</li><li>文件头部是 YAML frontmatter:<code>name</code> 与 <code>description</code> 必填,可选 <code>whenToUse</code>、<code>metadata</code>,以及两个权限开关:</li><ul><li><code>disable-model-invocation: true</code>:不进模型目录,只能由人触发;</li><li><code>user-invocable: false</code>:不出现在人可用的命令里,只能由模型调用;</li><li>两者都省略表示<strong>两种入口都开放</strong>。OpenSpec 生成的 6 个技能都没有写这两个键,所以它们既能被模型按 <code>description</code> 自动选中,也会出现在会话的人可调用技能列表里。</li></ul><li>技能根目录是<strong>被监视</strong>的:新增、改名、删除技能会在下一步自动进入目录(不用重启 DSH);模型自己的 <code>write</code> / <code>edit</code> 也会立刻让技能目录失效并刷新。</li></ul>
+<p>另外两个容易和技能混淆的概念:</p>
+<ol><li><strong>技能正文按需加载</strong>:发现阶段只解析 frontmatter 进目录,正文每次加载都重新读文件——所以改技能正文不需要任何版本管理或缓存清理。</li><li><strong><code>AGENTS.md</code> 是另一条通道</strong>:DSH 还会注入工作区指令(用户全局 <code>~/.dsh/AGENTS.md</code>,加项目里从仓库根到当前工作目录的每一级 <code>AGENTS.md</code> / <code>CLAUDE.md</code>,<code>.local.md</code> 作为本地覆盖)。如果你希望 DSH 在<strong>这个项目里总是主动走 OpenSpec 流程</strong>,在 <code>AGENTS.md</code> 里写一句,比每次口头交代更可靠:</li></ol>
+<p>   ```markdown<br>
+   ## 规格驱动开发</p>
+<ul><li>本仓库使用 OpenSpec。任何行为变更必须先有 <code>openspec/changes/<name>/</code> 变更方案。</li><ul><li>提需求时默认使用 <code>openspec-propose</code> 技能;实现前必须先跑 <code>openspec validate</code>。</li><li>归档前确认 <code>tasks.md</code> 全部勾选。</li> ```</ul></ul>
+<hr>
+<h2 id="完整实战-从一句需求到归档" data-num="04">完整实战:从一句需求到归档</h2>
+<p>下面这条链路全部可复制执行。示例需求:给应用加主题切换。</p>
+<h3 id="第-0-步-可选-先想清楚-explore">第 0 步(可选):先想清楚 —— <code>explore</code></h3>
+<p>需求还模糊时不要急着开变更。在 DSH 里说:</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">我想加深色模式,但不确定怎么接才干净。</code></pre></figure>
+<p>DSH 加载 <code>openspec-explore</code> 技能,读你的样式代码、权衡方案、收敛范围;<strong>此阶段不写任何代码</strong>,只产出思路。想清楚了再进入下一步。</p>
+<h3 id="第-1-步-创建变更骨架">第 1 步:创建变更骨架</h3>
+<p>CLI 直接创建:</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec new change add-theme-toggle</code></pre></figure>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">Created change 'add-theme-toggle' at openspec\changes\add-theme-toggle/
+Schema: spec-driven
+Next: openspec status --change add-theme-toggle</code></pre></figure>
+<p>在 DSH 里,等价的说法是「用 openspec-propose 帮我加一个主题切换能力,变更名叫 add-theme-toggle」。技能会依次读取 <code>openspec context --json</code>、<code>openspec status --json</code>、<code>openspec instructions <artifact> --json</code>,再逐个生成产物。</p>
+<h3 id="第-2-步-看进度-status">第 2 步:看进度 —— <code>status</code></h3>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec status --change add-theme-toggle</code></pre></figure>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">Change: add-theme-toggle
+Schema: spec-driven
+Change root: ...\openspec\changes\add-theme-toggle
+Progress: 0/4 artifacts complete
+
+[ ] proposal
+[-] specs (blocked by: proposal)
+[-] design (blocked by: proposal)
+[-] tasks (blocked by: specs, design)</code></pre></figure>
+<p><code>status --json</code> 会额外给出 <code>artifactPaths</code>、<code>applyRequires</code>、每个产物的 <code>requires</code> 依赖边。<strong>AI 靠这个 JSON 知道「下一个该写哪个文件、写到哪里」</strong>,而不是靠猜路径——这正是 OpenSpec 能稳定驱动各种 AI 工具的原因。</p>
+<h3 id="第-3-步-让-ai-按指令写产物">第 3 步:让 AI 按指令写产物</h3>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec instructions proposal --change add-theme-toggle</code></pre></figure>
+<p>输出是一段结构化的 <code><artifact></code> 指令,包含 <code>task</code> / <code>output</code> / <code>instruction</code> / <code>template</code> / <code>unlocks</code>(完整内容较长,这里摘录关键部分):</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">&lt;artifact id=&quot;proposal&quot; change=&quot;add-theme-toggle&quot; schema=&quot;spec-driven&quot;&gt;
+&lt;task&gt;Create the proposal artifact for change &quot;add-theme-toggle&quot;.&lt;/task&gt;
+&lt;output&gt;Write to: ...\add-theme-toggle\proposal.md&lt;/output&gt;
+&lt;instruction&gt;
+Sections:
+- **Why**: 1-2 sentences on the problem or opportunity.
+- **What Changes**: Bullet list of changes... Mark breaking changes with **BREAKING**.
+- **Capabilities**: New Capabilities / Modified Capabilities ...
+- **Impact**: Affected code, APIs, dependencies, or systems.
+&lt;/instruction&gt;
+&lt;template&gt;...可直接套用的 Markdown 骨架...&lt;/template&gt;
+&lt;unlocks&gt;Completing this artifact enables: specs, design&lt;/unlocks&gt;
+&lt;/artifact&gt;</code></pre></figure>
+<p>AI 照 <code>template</code> 填内容、写到 <code>output</code> 指定的路径。产物齐了之后:</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec status --change add-theme-toggle</code></pre></figure>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">Progress: 4/4 artifacts complete
+
+[x] proposal
+[x] specs
+[x] design
+[x] tasks
+
+All planning artifacts complete!
+Next: openspec instructions apply --change &quot;add-theme-toggle&quot; --json</code></pre></figure>
+<h3 id="第-4-步-校验-validate">第 4 步:校验 —— <code>validate</code></h3>
+<p>写完了不代表写对了。校验是 OpenSpec 最有价值的一环,它把「规格是否可验收」变成机器判断:</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec validate add-theme-toggle
+# Change 'add-theme-toggle' is valid</code></pre></figure>
+<p>漏写增量规格时会明确报错(这是新手最常踩的坑):</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">✗ [ERROR] file: Change must have at least one delta. No deltas found. Ensure your
+change has a specs/ directory with capability folders (e.g. specs/http-server/spec.md)
+... If this change intentionally modifies no specs (pure refactor, tooling, docs),
+set &quot;skip_specs: true&quot; in the change's .openspec.yaml instead.
+Totals: 0 passed, 1 failed (1 items)</code></pre></figure>
+<p>这里有个很好的设计取向:<strong>没有行为变化的纯重构/文档/工具类变更,不许硬造需求来骗过校验</strong>,而是在 <code>.openspec.yaml</code> 里显式声明 <code>skip_specs: true</code>。</p>
+<h3 id="第-5-步-实现-apply">第 5 步:实现 —— <code>apply</code></h3>
+<p>在 DSH 里说「开始实现这个变更」,或点名 <code>openspec-apply-change</code> 技能。技能会:</p>
+<ol><li>读取 <code>tasks.md</code>,用待办列表逐条推进;</li><li><strong>每完成一条就把 <code>- [ ]</code> 勾成 <code>- [x]</code></strong>,并给出验证证据(测试命令与结果);</li><li>发现规格与实现冲突时<strong>停下来问你</strong>,而不是默默改规格。</li></ol>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec list
+# Changes:
+#   add-theme-toggle     0/7 tasks     just now</code></pre></figure>
+<h3 id="第-6-步-归档-archive">第 6 步:归档 —— <code>archive</code></h3>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec archive add-theme-toggle --yes</code></pre></figure>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">Task status: 0/7 tasks
+Warning: 7 incomplete task(s) found. Continuing due to --yes flag.
+
+Specs to update:
+  theme-system: create
+Applying changes to openspec/specs/theme-system/spec.md:
+  + 2 added
+Totals: + 2, ~ 0, - 0, → 0
+Specs updated successfully.
+Change 'add-theme-toggle' archived as '2026-10-03-add-theme-toggle'.</code></pre></figure>
+<p>归档做了两件事:<strong>把增量合并进主规格</strong>,并把变更目录挪到 <code>changes/archive/2026-10-03-add-theme-toggle/</code>。此后 <code>openspec list --specs</code> 就能看到新能力:</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">Specs:
+  theme-system     requirements 2</code></pre></figure>
+<blockquote><p>小技巧:只是想让主规格先行更新、暂不归档,用 <code>openspec-sync-specs</code> 技能或 <code>openspec archive --skip-specs</code> 的反向操作即可;纯文档/工具类变更加 <code>--skip-specs</code> 归档。</p></blockquote>
+<hr>
+<h2 id="在-dsh-里用好-openspec" data-num="05">在 DSH 里用好 OpenSpec</h2>
+<h3 id="5-1-三种使用姿势">5.1 三种使用姿势</h3>
+<p><strong>姿势 A:纯 CLI(推荐给脚本和 CI)</strong></p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec list --json            # 变更列表(给程序读)
+openspec list --specs           # 已有能力清单
+openspec status --all           # 所有在途变更的产物进度
+openspec validate --all         # 一次性校验全部
+openspec validate --archived    # 归档前 lint:归档的变更必须任务全勾
+openspec view                   # 终端交互式看板
+openspec context                # 打印当前根目录的上下文简报
+openspec doctor                 # 目录关系健康检查</code></pre></figure>
+<p><strong>姿势 B:让 DSH 按技能干活(推荐给日常开发)</strong></p>
+<p>直接用自然语言表达意图,由 DSH 选择技能。对应关系:</p>
+<div class="table-wrap"><table><thead><tr><th>你想做的事</th><th>说法示例</th><th>背后技能</th></tr></thead><tbody><tr><td>需求还没想清楚</td><td>「先跟我理一下 X 该怎么做」</td><td><code>openspec-explore</code></td></tr><tr><td>提一个完整方案</td><td>「用 openspec 提一个变更:…」</td><td><code>openspec-propose</code></td></tr><tr><td>开始写代码</td><td>「开始实现这个变更」</td><td><code>openspec-apply-change</code></td></tr><tr><td>方案要改</td><td>「把变更里的 X 改成 Y,保持产物一致」</td><td><code>openspec-update-change</code></td></tr><tr><td>只更新主规格</td><td>「把增量同步进主规格」</td><td><code>openspec-sync-specs</code></td></tr><tr><td>收尾</td><td>「归档这个变更」</td><td><code>openspec-archive-change</code></td></tr></tbody></table></div>
+<p><strong>姿势 C:混合</strong>——你自己在终端跑 CLI 检查,让 DSH 负责写产物。这也是调试技能行为时最实用的方式:<code>openspec status</code> 卡在哪一步,就问 DSH「为什么 <code>design</code> 还没生成」。</p>
+<h3 id="5-2-dsh-侧的入口细节">5.2 DSH 侧的入口细节</h3>
+<p><strong>(1) 技能入口:命令行里写 <code>/技能名</code></strong></p>
+<p>DSH 的技能有两种触发方式,都来自技能插件(<code>dsh-skill-filesystem</code> / <code>dsh-tool-skill</code>)的实测行为:</p>
+<ul><li><strong>模型自动选中</strong>:会话开始时 DSH 会把可被模型调用的技能以 <code><available_skills></code> 目录消息注入(只含 <code>name</code> + 截断的 <code>description</code>,默认上限 500 字符),模型再按需调用 <code>skill</code> 工具加载正文。OpenSpec 在 <code>description</code> 里塞了 <code>openspec propose</code>、<code>opsx propose</code> 这类关键词,就是为了被自然语言命中。</li><li><strong>人工直接触发</strong>:在输入框里输入<strong>以空白为边界的 <code>/技能名</code></strong>,DSH 直接把该技能的正文注入当前会话——<code>/openspec-propose</code>、<code>/openspec-apply-change</code>、<code>/openspec-archive-change</code> 等 6 个都可用。这也是 <code>disable-model-invocation</code> 类技能唯一的入口。</li></ul>
+<p>也就是说,<code>/opsx:propose</code>(带冒号)是别的工具写法,DSH 里请写 <code>/openspec-propose "变更名或需求描述"</code>,或者干脆用一句中文说清楚。</p>
+<p><strong>(2) 命令入口:第三方插件 <code>dsh-openspec</code></strong></p>
+<p>社区插件 <strong><code>@codigoconelmer/dsh-openspec</code></strong>(作者 Elmer Jacobo,MIT)把同一批官方工作流注册成 DSH 的原生斜杠命令——它不复制工作流,而是从 <code>@fission-ai/openspec</code> 包里读官方模板并转成 DSH 的扁平命名:</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash"># 安装到某个 profile(重启 DSH 后生效)
+dsh plugin --profile desktop add @codigoconelmer/dsh-openspec
+# 或从本地 checkout 安装
+dsh plugin --profile desktop add /path/to/dsh-openspec</code></pre></figure>
+<div class="table-wrap"><table><thead><tr><th>命令</th><th>作用</th></tr></thead><tbody><tr><td><code>/opsx-explore</code></td><td>提出变更前先探索问题与仓库</td></tr><tr><td><code>/opsx-propose</code></td><td>创建变更提案并生成规划产物</td></tr><tr><td><code>/opsx-apply</code></td><td>实现变更里的任务</td></tr><tr><td><code>/opsx-sync</code></td><td>把变更的增量规格同步进主规格</td></tr><tr><td><code>/opsx-archive</code></td><td>收尾并归档(官方 sync 流程会一并执行)</td></tr><tr><td><code>/opsx-update</code></td><td>修订既有变更并保持产物一致</td></tr></tbody></table></div>
+<p>它的实现方式是「转向」(steer):命令被触发后把官方工作流文本作为一条消息交给当前会话的 agent,而不是开一个独立进程。<strong>两个版本前沿要注意</strong>:</p>
+<ul><li>插件 0.1.0 依赖的是 <code>@fission-ai/openspec@1.11.0</code>,而你全局装的是 1.14.0——命令走的是插件自带那一份工作流模板,<code>npm i -g</code> 升级全局 CLI <strong>不会</strong>同步更新它;等插件发新版本才跟上。</li><li>它的 README 还写着「DSH 没有被 OpenSpec 列为目标工具」,这句话在你本地已经过时:OpenSpec 1.14 的 <code>openspec init --tools dsh</code> 已原生支持 DSH。两套入口可以并存——技能(<code>/openspec-*</code>)和命令(<code>/opsx-*</code>)指向的是同一批官方工作流。</li></ul>
+<p><strong>(3) 其他斜杠命令不是 OpenSpec 的</strong></p>
+<p>DSH 自带的 <code>/</code> 命令是会话级操作,和 OpenSpec 无关:<code>/compact</code>(压缩上下文)、<code>/plan</code>(计划模式)、<code>/goal</code>(长任务目标)、<code>/feedback</code>、<code>/permission</code>(沙箱 + 审批预设)、<code>/export</code>(Web 端导出会话日志 ZIP),Web 端另有 <code>/file</code>、<code>/model</code>。中文输入法下也能敲别名:<code>/压缩</code>、<code>/计划</code>、<code>/反馈</code>、<code>/目标</code>、<code>/权限</code>、<code>/导出</code>。它们和 <code>/openspec-*</code>、<code>/opsx-*</code> 共存,互不冲突。</p>
+<p><strong>(4) <code>AGENTS.md</code> 是第三条通道</strong></p>
+<p>如果你希望 DSH 在<strong>这个项目里总是主动走 OpenSpec 流程</strong>,别靠每次口头交代,把它写进工作区指令文件。DSH 会把用户全局 <code>~/.dsh/AGENTS.md</code> 加上从仓库根到会话工作目录的每一级 <code>AGENTS.md</code> / <code>CLAUDE.md</code>(<code>.local.md</code> 作为本地覆盖)注入首轮请求,总预算 64 KiB:</p>
+<figure class="code"><figcaption><span class="lang">markdown</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-markdown">## 规格驱动开发
+
+- 本仓库使用 OpenSpec。任何行为变更必须先有 `openspec/changes/&lt;name&gt;/` 变更方案。
+- 提需求时默认走 `openspec-propose`;实现前先跑 `openspec validate`。
+- 归档前确认 `tasks.md` 全部勾选。</code></pre></figure>
+<p>一个实践上的坑:<strong>这个注入没有文件监听</strong>。你改完 <code>AGENTS.md</code> 后,要等 DSH 成功执行一次 <code>read</code>/<code>write</code>/<code>edit</code>(或会话恢复)才会刷新;在 shell 里 <code>cd</code> 换目录<strong>不会</strong>触发发现。所以改完规则,最好让 DSH 立刻读一个文件。</p>
+<p><strong>(5) 关于 <code>allowed-tools</code> 的提醒</strong></p>
+<p>OpenSpec 生成的技能头部有 <code>allowed-tools: Bash(openspec:*)</code>。这<strong>不是 DSH 的字段</strong>——DSH 的技能 frontmatter 只认 <code>name</code>、<code>description</code>、<code>whenToUse</code>、<code>metadata</code>、<code>disable-model-invocation</code>、<code>user-invocable</code>,未知键会被忽略。它既不会报错,也<strong>不会</strong>真的把 DSH 限制在 <code>openspec</code> 命令上;DSH 的工具权限由会话的权限预设(<code>/permission</code>,决定沙箱模式与审批策略)统一管理。</p>
+<p><strong>(6) 内置技能不会被覆盖</strong></p>
+<p>DSH 打包内置了 <code>office-docx</code>、<code>office-pptx</code>、<code>office-xlsx</code>、<code>agent-experience</code>、<code>cordis-plugin-development</code> 等技能(优先级 600,即最后一档)。项目里的 <code>.dsh/skills/</code>(优先级 100)优先于它们,但两者共存、互不覆盖。同名时高优先级胜出——所以别把 OpenSpec 技能改名为 <code>office-docx</code>。</p>
+<h3 id="5-3-让-dsh-不跑偏的三个抓手">5.3 让 DSH 不跑偏的三个抓手</h3>
+<ol><li><strong><code>openspec/config.yaml</code> 写项目约束</strong>,而不是写笔记。这个文件会被注入每次产物生成:</li></ol>
+<p>   ```yaml<br>
+   schema: spec-driven</p>
+<p>   context: |<br>
+     所有产物用中文书写<br>
+     设计与任务必须覆盖 Windows / macOS / Linux</p>
+<p>   rules:<br>
+     proposal:</p>
+<ul><li>提案不超过 500 字</li><ul><li>必须写明不做什么(out of scope)</li> tasks:<ul><li>每个任务必须附带可执行的验证方式</li> ```</ul></ul></ul>
+<p>   注意:CLI 的 <code>instruction</code> 里明确要求 AI <strong>不要把 <code>context</code> / <code>rules</code> 抄进产物</strong>,它们是约束,不是内容。</p>
+<ol><li><strong>计划与实现分离</strong>。<code>openspec-propose</code> 技能里有硬性边界:本次请求只授权「规划」,即使你说「顺便把它实现了」,它也必须停下等你的下一条指令。这是防 AI 一次跑太远的护栏。</li></ol>
+<ol><li><strong><code>tasks.md</code> 里写验证方式</strong>。任务写成「实现 X,验证 Y」,apply 阶段 AI 就有明确的完成判据,而不是「我觉得写完了」。</li></ol>
+<h3 id="5-4-每条技能在干什么-速查">5.4 每条技能在干什么(速查)</h3>
+<div class="table-wrap"><table><thead><tr><th>技能</th><th>边界</th><th>会不会改代码</th></tr></thead><tbody><tr><td><code>openspec-explore</code></td><td>只探讨、只读代码</td><td>❌</td></tr><tr><td><code>openspec-propose</code></td><td>只写规划产物</td><td>❌</td></tr><tr><td><code>openspec-update-change</code></td><td>只改既有变更的规划产物</td><td>❌</td></tr><tr><td><code>openspec-apply-change</code></td><td>按 tasks 实现、勾选任务</td><td>✅</td></tr><tr><td><code>openspec-sync-specs</code></td><td>增量 → 主规格</td><td>❌</td></tr><tr><td><code>openspec-archive-change</code></td><td>归档 + 合并规格</td><td>❌</td></tr></tbody></table></div>
+<hr>
+<h2 id="团队与多仓库-stores-beta" data-num="06">团队与多仓库:Stores(beta)</h2>
+<p>单仓库场景,上面就够了。团队真正的痛点在<strong>跨仓库</strong>:</p>
+<ul><li>一个功能横跨 <code>api-server</code>、<code>web-app</code>、<code>shared-lib</code> 三个仓库;</li><li>平台团队维护需求,业务团队只读引用;</li><li>计划必须先于代码存在。</li></ul>
+<p><strong>Store</strong> 就是答案:一个独立的 OpenSpec 仓库,和代码仓库一样 <code>git push</code> 共享。</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec store setup my-platform-specs   # 创建并注册本地 store
+openspec store register E:\path\to\specs # 注册已有仓库
+openspec store list                      # 列出已注册
+
+openspec list --store my-platform-specs  # 把 store 当根目录使用
+openspec archive add-theme-toggle --store my-platform-specs</code></pre></figure>
+<p>选了 store 之后,<code>--store <id></code> 在整条工作流里是<strong>粘性</strong>的:DSH 的技能会把它带到后续每条读/写规格的命令上(技能文档里写得很清楚:上面所有不带 <code>--store</code> 的示例都是简写,执行前要补上)。</p>
+<p>另一个实用功能是 <strong>workset</strong>——把多个文件夹组合成一个个人工作视图:</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">openspec workset create my-view
+openspec workset list
+openspec workset open my-view</code></pre></figure>
+<hr>
+<h2 id="常见坑与排查" data-num="07">常见坑与排查</h2>
+<div class="table-wrap"><table><thead><tr><th>现象</th><th>原因</th><th>解决</th></tr></thead><tbody><tr><td><code>openspec list --json</code> 返回 <code>"root": null</code> 且退出码非 0</td><td>当前目录没有 <code>openspec/</code> 根,不是 CLI 坏了</td><td>在项目根执行 <code>openspec init</code>;或确认是否该用 <code>--store</code></td></tr><tr><td>校验报 <code>Change must have at least one delta</code></td><td>没写增量规格</td><td>补 <code>changes/<name>/specs/<capability>/spec.md</code>;纯重构类变更在 <code>.openspec.yaml</code> 里加 <code>skip_specs: true</code></td></tr><tr><td><code>openspec show add-theme-toggle</code> 报 <code>Unknown item</code></td><td>变更已归档,不在活动列表里</td><td>用 <code>openspec list --archived</code> 查归档名,再 <code>openspec show <归档名></code></td></tr><tr><td>归档时提示 <code>N incomplete task(s) found</code></td><td><code>tasks.md</code> 还有未勾选项</td><td>让 DSH 继续 apply;确属误报可加 <code>--yes</code>,但会留下不一致</td></tr><tr><td>技能内容像是旧版本</td><td>升级了 npm 包但没刷新技能文件</td><td>在每个项目里跑 <code>openspec update</code></td></tr><tr><td><code>store:</code> 指向未注册的 store</td><td><code>config.yaml</code> 声明了这台机器解析不到的 store</td><td><code>openspec store register</code> 注册,或修正 <code>store:</code> 行</td></tr><tr><td>中文产物被写成英文</td><td>未设置语言</td><td><code>openspec init --language Chinese</code>,或在 <code>config.yaml</code> 的 <code>context</code> 里写明</td></tr></tbody></table></div>
+<p>排障三件套:<code>openspec doctor</code>(目录关系)、<code>openspec validate --all</code>(格式与完整性)、<code>openspec status --all</code>(进度)。</p>
+<hr>
+<h2 id="最佳实践清单" data-num="08">最佳实践清单</h2>
+<p><strong>建模</strong></p>
+<ul><li><strong>Capability 按「系统行为」命名,不要按「本次任务」命名</strong>:<code>user-auth</code>、<code>book-catalog</code> 是对的;<code>add-login-endpoint</code> 是错的。</li><li><strong>一个能力一个边界</strong>,不要建 <code>common</code>、<code>utils</code> 这种大杂烩规格。</li><li>需求写可观察行为(「系统 SHALL …」),场景写 WHEN/THEN;不要写「使用 Redis 缓存」这种实现细节——那属于 <code>design.md</code>。</li><li>修改已有能力时,<code>Modified Capabilities</code> 里必须用 <code>openspec/specs/</code> 下的<strong>精确路径</strong>。</li></ul>
+<p><strong>流程</strong></p>
+<ul><li>变更名用 kebab-case,动宾结构:<code>add-book-search</code>、<code>fix-login-timeout</code>。</li><li>一次变更保持可独立评审、可独立归档的粒度;太大就拆。</li><li><code>proposal</code> 只写「为什么/改什么」,实现细节一律进 <code>design.md</code>。</li><li>复杂变更才写 <code>design.md</code>;简单改动跳过它,别为流程而流程。</li><li>实现完成后立刻归档,不要堆积在途变更。</li></ul>
+<p><strong>与 AI 协作</strong></p>
+<ul><li>先 <code>explore</code> 再 <code>propose</code>;先 <code>validate</code> 再 <code>apply</code>;先勾完任务再 <code>archive</code>。</li><li>任务条目自带验证方式,让 AI 有据可依。</li><li>用 <code>--json</code> 系命令把 OpenSpec 接进 CI(例如 pre-commit 里跑 <code>openspec validate --archived</code>)。</li><li>定期 <code>openspec update</code> 保持技能与 CLI 版本一致。</li></ul>
+<hr>
+<h2 id="结语-规格不是负担-是给-ai-的接口" data-num="09">结语:规格不是负担,是给 AI 的接口</h2>
+<p>OpenSpec 最聪明的地方,是它把自己做成了<strong>AI 与人类之间的一份机器可读接口</strong>:</p>
+<ul><li>人类靠 Markdown 读得懂 <code>proposal.md</code> 和 <code>spec.md</code>;</li><li>AI 靠 <code>status --json</code> / <code>instructions --json</code> 知道下一步写什么、写到哪、遵守什么规则;</li><li>CI 靠 exit code 判断规格是否完整、归档是否干净;</li><li>Git 帮你把「当初为什么这么改」永久留存。</li></ul>
+<p>它没有发明新格式,也没有要求你改变技术栈——只是在 AI 和代码之间,补上了那块一直缺失的<strong>共识层</strong>。</p>
+<p>下一步动手(五分钟):</p>
+<figure class="code"><figcaption><span class="lang">bash</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-bash">npm install -g @fission-ai/openspec@latest
+cd your-project
+openspec init --tools dsh</code></pre></figure>
+<p>然后对 DSH 说一句:</p>
+<figure class="code"><figcaption><span class="lang">text</span><button class="copy" type="button" data-copy>复制</button></figcaption><pre><code class="lang-text">用 openspec 提一个变更:给应用加上主题切换能力。</code></pre></figure>
+<p>从这一句开始,你的 AI 就不再是「许愿池」,而是按规格交付的工程协作者。</p>
+<hr>
+<h2 id="参考" data-num="10">参考</h2>
+<ul><li>OpenSpec 仓库:<a href="https://github.com/Fission-AI/OpenSpec">https://github.com/Fission-AI/OpenSpec</a></li><li>快速上手:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/getting-started.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/getting-started.md</a></li><li>核心概念:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/overview.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/overview.md</a></li><li>新工作流 <code>/opsx</code>:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/opsx.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/opsx.md</a></li><li>命令与技能:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/commands.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/commands.md</a></li><li>CLI 参考:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/cli.md</a></li><li>支持的 AI 工具:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/supported-tools.md</a></li><li>团队工作流与 Stores:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/team-workflow.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/team-workflow.md</a></li><li>编写规格:<a href="https://github.com/Fission-AI/OpenSpec/blob/main/docs/writing-specs.md">https://github.com/Fission-AI/OpenSpec/blob/main/docs/writing-specs.md</a></li><li>npm 包:<a href="https://www.npmjs.com/package/@fission-ai/openspec">https://www.npmjs.com/package/@fission-ai/openspec</a></li></ul>
+<blockquote><p>验证环境:OpenSpec 1.14.0(npm 全局)+ DeepSeek Harness,Windows。示例中的日期、路径为本地执行结果。<br>本文可与同目录下的 <code>openspec-dsh-blog.html</code> 对照阅读(HTML 版含目录导航、深浅色主题与代码复制按钮)。</p></blockquote>
+  </article>
+</main>
+
+<footer>
+  OpenSpec × DeepSeek Harness 实践笔记 · 命令输出均在 OpenSpec 1.14.0 上实测
+</footer>
+
+<script>
+(function () {
+  // 主题跟随系统;右上角/侧栏不再提供切换按钮
+  var root = document.documentElement;
+  var saved = null;
+  try { saved = localStorage.getItem('blog-theme'); } catch (e) {}
+  if (saved === 'light' || saved === 'dark' || saved === 'auto') root.setAttribute('data-theme', saved);
+
+  // 复制代码
+  document.querySelectorAll('[data-copy]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var code = b.closest('figure').querySelector('code');
+      var text = code.innerText;
+      var done = function () {
+        b.textContent = '已复制';
+        b.classList.add('ok');
+        setTimeout(function () { b.textContent = '复制'; b.classList.remove('ok'); }, 1400);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { fallback(text, done); });
+      } else { fallback(text, done); }
+    });
+  });
+  function fallback(text, done) {
+    var ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+
+  // 侧栏开合(移动端)
+  var toggle = document.getElementById('navToggle');
+  toggle && toggle.addEventListener('click', function () { document.body.classList.toggle('nav-open'); });
+  document.addEventListener('click', function (e) {
+    if (document.body.classList.contains('nav-open') && !e.target.closest('aside') && !e.target.closest('#navToggle')) {
+      document.body.classList.remove('nav-open');
+    }
+  });
+  document.querySelectorAll('aside a').forEach(function (a) {
+    a.addEventListener('click', function () { document.body.classList.remove('nav-open'); });
+  });
+
+  // 阅读进度 + 目录高亮
+  var bar = document.getElementById('progress');
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav a'));
+  var heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); }).filter(Boolean);
+  function onScroll() {
+    var doc = document.documentElement;
+    var max = doc.scrollHeight - doc.clientHeight;
+    bar.style.width = (max > 0 ? (doc.scrollTop / max) * 100 : 0) + '%';
+    var y = doc.scrollTop + 120, active = heads[0];
+    heads.forEach(function (h) { if (h.offsetTop <= y) active = h; });
+    links.forEach(function (a) {
+      a.classList.toggle('active', active && a.getAttribute('href') === '#' + active.id);
+    });
+  }
+  var raf = null;
+  window.addEventListener('scroll', function () {
+    if (raf) return;
+    raf = requestAnimationFrame(function () { onScroll(); raf = null; });
+  }, { passive: true });
+  onScroll();
+})();
+</script>
+</body>
+</html>

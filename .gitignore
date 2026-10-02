@@ -1,0 +1,16 @@
+# 临时/本地文件
+_shot-*.png
+_probe.cjs
+_ref/
+_dsh_extract/
+_dsh_extract_extra/
+*.log
+
+# 系统
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
